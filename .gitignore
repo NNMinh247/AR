@@ -1,0 +1,33 @@
+# Bỏ qua các thư mục sinh tự động của Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+
+# Bỏ qua các file cấu hình cá nhân
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Bỏ qua file rác của hệ điều hành
+.DS_Store
+Thumbs.db
+
+# Bỏ qua file tạm của Visual Studio
+.vs/
+.vsconfig
