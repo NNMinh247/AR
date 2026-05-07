@@ -35,7 +35,8 @@ public class PantsController : MonoBehaviour
 
     [Header("Hiệu chỉnh chung")]
     public Vector3 legForwardAxis = Vector3.up;
-    public bool mirrorLeftRight = true;
+    public bool mirrorLeftRight = false;
+    public bool flipZ = true;
 
     [Header("Xoay Hips (thân)")]
     public bool rotateHips = true;
@@ -64,10 +65,12 @@ public class PantsController : MonoBehaviour
     private Quaternion hipsInitialRot;
     private Quaternion leftUpLegInitialRot, rightUpLegInitialRot;
     private Quaternion leftLegInitialRot, rightLegInitialRot;
+
     private bool bonesFound = false;
     private bool landmarksFound = false;
     private bool initialRotCached = false;
     private bool dumpedBones = false;
+    private float searchTimer = 0f;
 
     void Start()
     {
@@ -108,14 +111,20 @@ public class PantsController : MonoBehaviour
 
         if (rotateHips) RotateHips();
 
-        RotateBoneMixamo(mpLeftHip, mpLeftKnee, boneLeftUpLeg, leftUpLegInitialRot);
-        RotateBoneMixamo(mpLeftKnee, mpLeftAnkle, boneLeftLeg, leftLegInitialRot);
-        RotateBoneMixamo(mpRightHip, mpRightKnee, boneRightUpLeg, rightUpLegInitialRot);
-        RotateBoneMixamo(mpRightKnee, mpRightAnkle, boneRightLeg, rightLegInitialRot);
+        RotateLimb(mpLeftHip, mpLeftKnee, boneLeftUpLeg, leftUpLegInitialRot, legForwardAxis);
+        RotateLimb(mpLeftKnee, mpLeftAnkle, boneLeftLeg, leftLegInitialRot, legForwardAxis);
+        RotateLimb(mpRightHip, mpRightKnee, boneRightUpLeg, rightUpLegInitialRot, legForwardAxis);
+        RotateLimb(mpRightKnee, mpRightAnkle, boneRightLeg, rightLegInitialRot, legForwardAxis);
     }
 
     void TryFindLandmarks()
     {
+        if (landmarksFound) return;
+
+        searchTimer += Time.deltaTime;
+        if (searchTimer < 0.5f) return;
+        searchTimer = 0f;
+
         GameObject parentObj = GameObject.Find(annotationParentName);
         if (parentObj == null || parentObj.transform.childCount < 33) return;
 
@@ -224,45 +233,33 @@ public class PantsController : MonoBehaviour
 
     void RotateHips()
     {
-        if (boneHips == null) return;
-        if (mpLeftHip == null || mpRightHip == null) return;
-        if (mpLeftShoulder == null || mpRightShoulder == null) return;
+        if (boneHips == null || mpLeftHip == null || mpRightHip == null ||
+            mpLeftShoulder == null || mpRightShoulder == null) return;
 
-        Vector2 leftShoulder2D = new Vector2(mpLeftShoulder.position.x, mpLeftShoulder.position.y);
-        Vector2 rightShoulder2D = new Vector2(mpRightShoulder.position.x, mpRightShoulder.position.y);
-        Vector2 leftHip2D = new Vector2(mpLeftHip.position.x, mpLeftHip.position.y);
-        Vector2 rightHip2D = new Vector2(mpRightHip.position.x, mpRightHip.position.y);
+        Vector3 shoulderCenter = (mpLeftShoulder.position + mpRightShoulder.position) / 2f;
+        Vector3 hipCenter = (mpLeftHip.position + mpRightHip.position) / 2f;
 
-        Vector2 shoulderCenter2D = (leftShoulder2D + rightShoulder2D) / 2f;
-        Vector2 hipCenter2D = (leftHip2D + rightHip2D) / 2f;
+        Vector3 upVector = (shoulderCenter - hipCenter).normalized;
+        Vector3 rightVector = (mpRightShoulder.position - mpLeftShoulder.position).normalized;
 
-        Vector2 torsoDir = shoulderCenter2D - hipCenter2D;
-        float torsoHeight = torsoDir.magnitude;
-        if (torsoHeight < 0.001f) return;
-
-        // ROLL — nghiêng trái/phải quanh trục Z
-        float rollAngle = Mathf.Atan2(-torsoDir.x, torsoDir.y) * Mathf.Rad2Deg;
-        if (invertRoll) rollAngle = -rollAngle;
-
-        // YAW — xoay trái/phải quanh trục Y (±45°)
-        float currentShoulderWidth = Vector2.Distance(leftShoulder2D, rightShoulder2D);
-        float widthRatio = Mathf.Clamp01(currentShoulderWidth / (torsoHeight * maxShoulderToTorsoRatio));
-        float yawAbs = Mathf.Acos(widthRatio) * Mathf.Rad2Deg;
-
-        float yawSign = 0f;
-        float deltaZ = mpLeftShoulder.position.z - mpRightShoulder.position.z;
-        if (Mathf.Abs(deltaZ) > zThreshold)
+        // 1. ÁP DỤNG Z-THRESHOLD (Chống giật rung lắc khi đứng thẳng)
+        if (Mathf.Abs(mpRightShoulder.position.z - mpLeftShoulder.position.z) < zThreshold)
         {
-            yawSign = Mathf.Sign(deltaZ);
+            rightVector.z = 0;
+            rightVector = rightVector.normalized;
         }
-        if (invertYaw) yawSign = -yawSign;
-        float yawAngle = yawSign * yawAbs;
 
-        Quaternion rollRot = Quaternion.AngleAxis(rollAngle, Vector3.forward);
-        Quaternion yawRot = Quaternion.AngleAxis(yawAngle, Vector3.up);
+        // 2. XỬ LÝ INVERT ROLL VÀ YAW (Sửa lỗi lật trục khi soi gương)
+        if (invertRoll) upVector.x = -upVector.x;
+        if (invertYaw) rightVector.z = -rightVector.z;
 
-        Quaternion targetRotation = yawRot * rollRot * hipsInitialRot;
-        if (invertBodyForward) targetRotation = Quaternion.AngleAxis(180, Vector3.up) * targetRotation;
+        Vector3 forwardVector = Vector3.Cross(rightVector, upVector).normalized;
+        if (invertBodyForward) forwardVector = -forwardVector;
+
+        if (forwardVector == Vector3.zero || upVector == Vector3.zero) return;
+
+        Quaternion absoluteRotation = Quaternion.LookRotation(forwardVector, upVector);
+        Quaternion targetRotation = absoluteRotation * hipsInitialRot;
 
         if (smoothing > 0f)
             boneHips.rotation = Quaternion.Slerp(boneHips.rotation, targetRotation, 1f - smoothing);
@@ -270,17 +267,26 @@ public class PantsController : MonoBehaviour
             boneHips.rotation = targetRotation;
     }
 
-    void RotateBoneMixamo(Transform startPoint, Transform endPoint, Transform targetBone,
-                          Quaternion initialRotation)
+    // Thay thế hoàn toàn hàm RotateBoneMixamo cũ bằng hàm này
+    void RotateLimb(Transform startPoint, Transform endPoint, Transform targetBone, Quaternion initialRotation, Vector3 forwardAxis)
     {
         if (startPoint == null || endPoint == null || targetBone == null) return;
 
         Vector3 direction = endPoint.position - startPoint.position;
         if (direction.magnitude < 0.001f) return;
 
-        Vector3 currentBoneDirection = initialRotation * legForwardAxis;
-        Quaternion deltaRotation = Quaternion.FromToRotation(currentBoneDirection, direction.normalized);
-        Quaternion targetRotation = deltaRotation * initialRotation;
+        if (flipZ) direction.z = -direction.z;
+
+        Quaternion hipDelta = Quaternion.identity;
+        if (boneHips != null)
+        {
+            hipDelta = boneHips.rotation * Quaternion.Inverse(hipsInitialRot);
+        }
+
+        Quaternion currentRestRotation = hipDelta * initialRotation;
+        Vector3 currentBoneDirection = currentRestRotation * forwardAxis;
+
+        Quaternion targetRotation = Quaternion.FromToRotation(currentBoneDirection, direction.normalized) * currentRestRotation;
 
         if (smoothing > 0f)
             targetBone.rotation = Quaternion.Slerp(targetBone.rotation, targetRotation, 1f - smoothing);

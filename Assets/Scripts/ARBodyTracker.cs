@@ -26,8 +26,8 @@ public class ARBodyTracker : MonoBehaviour
     public float scaleMultiplier = 1f;
 
     [Header("Mirror & Flip")]
-    public bool mirrorLeftRight = true;
-    public bool flipZ = false;
+    public bool mirrorLeftRight = false;
+    public bool flipZ = true;
 
     [Header("Làm mượt")]
     [Range(0f, 1f)]
@@ -39,6 +39,7 @@ public class ARBodyTracker : MonoBehaviour
     [Header("Tinh chỉnh nhanh (bấm trong Play Mode)")]
     [Tooltip("Tick ô này khi đang T-pose để calibrate referenceTorsoHeight.")]
     public bool calibrateTorsoHeight = false;
+    private float searchTimer = 0f;
 
     public enum AnchorPoint
     {
@@ -66,6 +67,12 @@ public class ARBodyTracker : MonoBehaviour
 
     void TryFindLandmarks()
     {
+        if (landmarksFound) return;
+
+        searchTimer += Time.deltaTime;
+        if (searchTimer < 0.5f) return;
+        searchTimer = 0f;
+
         GameObject parentObj = GameObject.Find(annotationParentName);
         if (parentObj == null || parentObj.transform.childCount < 33) return;
 

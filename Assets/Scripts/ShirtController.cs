@@ -20,6 +20,7 @@ public class ShirtController : MonoBehaviour
     public Transform mpRightWrist;
 
     [Header("Xương 3D")]
+    public Transform boneHips;
     public Transform boneLeftArm;
     public Transform boneRightArm;
     public Transform boneLeftForeArm;
@@ -27,7 +28,10 @@ public class ShirtController : MonoBehaviour
 
     [Header("Hiệu chỉnh")]
     public Vector3 boneForwardAxis = Vector3.up;
-    public bool mirrorLeftRight = true;
+    public bool mirrorLeftRight = false;
+    public bool flipZ = true;
+
+    private Quaternion hipsInitialRot;
 
     [Range(0f, 1f)]
     public float smoothing = 0.3f;
@@ -38,10 +42,12 @@ public class ShirtController : MonoBehaviour
 
     private Quaternion leftArmInitialRot, rightArmInitialRot;
     private Quaternion leftForeArmInitialRot, rightForeArmInitialRot;
+
     private bool bonesFound = false;
     private bool landmarksFound = false;
     private bool initialRotCached = false;
     private bool dumpedBones = false;
+    private float searchTimer = 0f;
 
     void Start()
     {
@@ -69,14 +75,20 @@ public class ShirtController : MonoBehaviour
             initialRotCached = true;
         }
 
-        RotateBoneMixamo(mpLeftShoulder, mpLeftElbow, boneLeftArm, leftArmInitialRot);
-        RotateBoneMixamo(mpLeftElbow, mpLeftWrist, boneLeftForeArm, leftForeArmInitialRot);
-        RotateBoneMixamo(mpRightShoulder, mpRightElbow, boneRightArm, rightArmInitialRot);
-        RotateBoneMixamo(mpRightElbow, mpRightWrist, boneRightForeArm, rightForeArmInitialRot);
+        RotateLimb(mpLeftShoulder, mpLeftElbow, boneLeftArm, leftArmInitialRot, boneForwardAxis);
+        RotateLimb(mpLeftElbow, mpLeftWrist, boneLeftForeArm, leftForeArmInitialRot, boneForwardAxis);
+        RotateLimb(mpRightShoulder, mpRightElbow, boneRightArm, rightArmInitialRot, boneForwardAxis);
+        RotateLimb(mpRightElbow, mpRightWrist, boneRightForeArm, rightForeArmInitialRot, boneForwardAxis);
     }
 
     void TryFindLandmarks()
     {
+        if (landmarksFound) return;
+
+        searchTimer += Time.deltaTime;
+        if (searchTimer < 0.5f) return;
+        searchTimer = 0f;
+
         GameObject parentObj = GameObject.Find(annotationParentName);
         if (parentObj == null || parentObj.transform.childCount < 33) return;
 
@@ -109,12 +121,13 @@ public class ShirtController : MonoBehaviour
 
     void TryFindBones()
     {
+        // 1. Tự động tìm gốc xương (Armature Root) nếu chưa có
         if (armatureRoot == null)
         {
-            Transform hips = FindInScene(boneNamePrefix + "Hips");
-            if (hips != null)
+            Transform foundHips = FindInScene(boneNamePrefix + "Hips");
+            if (foundHips != null)
             {
-                armatureRoot = hips;
+                armatureRoot = foundHips;
                 while (armatureRoot.parent != null) armatureRoot = armatureRoot.parent;
                 if (showDebugLog)
                     Debug.Log("🟢 [Áo] Auto-detected armatureRoot: " + armatureRoot.name);
@@ -123,17 +136,21 @@ public class ShirtController : MonoBehaviour
 
         Transform searchRoot = armatureRoot != null ? armatureRoot : transform;
 
+        // 2. Tìm Xương Hông (BẮT BUỘC ĐỂ KHÔNG BỊ NGƯỢC TAY)
+        boneHips = FindBoneRecursive(searchRoot, boneNamePrefix + "Hips");
+
+        // 3. Tìm các Xương Tay
         boneLeftArm = FindBoneRecursive(searchRoot, boneNamePrefix + "LeftArm");
         boneRightArm = FindBoneRecursive(searchRoot, boneNamePrefix + "RightArm");
         boneLeftForeArm = FindBoneRecursive(searchRoot, boneNamePrefix + "LeftForeArm");
         boneRightForeArm = FindBoneRecursive(searchRoot, boneNamePrefix + "RightForeArm");
 
         if (boneLeftArm != null && boneRightArm != null &&
-            boneLeftForeArm != null && boneRightForeArm != null)
+            boneLeftForeArm != null && boneRightForeArm != null && boneHips != null)
         {
             bonesFound = true;
             if (showDebugLog)
-                Debug.Log("🟢 [Áo] Đã tìm thấy TẤT CẢ xương tay.");
+                Debug.Log("🟢 [Áo] Đã tìm thấy TẤT CẢ xương tay và xương Hông.");
         }
     }
 
@@ -169,6 +186,7 @@ public class ShirtController : MonoBehaviour
 
     void CacheInitialRotations()
     {
+        hipsInitialRot = boneHips.rotation;
         leftArmInitialRot = boneLeftArm.rotation;
         rightArmInitialRot = boneRightArm.rotation;
         leftForeArmInitialRot = boneLeftForeArm.rotation;
@@ -177,17 +195,29 @@ public class ShirtController : MonoBehaviour
             Debug.Log("🟢 [Áo] Đã cache T-pose gốc.");
     }
 
-    void RotateBoneMixamo(Transform startPoint, Transform endPoint, Transform targetBone,
-                          Quaternion initialRotation)
+    void RotateLimb(Transform startPoint, Transform endPoint, Transform targetBone, Quaternion initialRotation, Vector3 forwardAxis)
     {
         if (startPoint == null || endPoint == null || targetBone == null) return;
 
         Vector3 direction = endPoint.position - startPoint.position;
         if (direction.magnitude < 0.001f) return;
 
-        Vector3 currentBoneDirection = initialRotation * boneForwardAxis;
-        Quaternion deltaRotation = Quaternion.FromToRotation(currentBoneDirection, direction.normalized);
-        Quaternion targetRotation = deltaRotation * initialRotation;
+        // LẬT TRỤC Z: Ngăn tay thọc ngược qua ngực khi quay lưng
+        if (flipZ) direction.z = -direction.z;
+
+        // 1. Tính xem Cột sống (Hips) đã xoay bao nhiêu độ so với T-Pose
+        Quaternion hipDelta = Quaternion.identity;
+        if (boneHips != null)
+        {
+            hipDelta = boneHips.rotation * Quaternion.Inverse(hipsInitialRot);
+        }
+
+        // 2. Mang góc xoay của Cột sống cộng dồn vào T-Pose của tay
+        Quaternion currentRestRotation = hipDelta * initialRotation;
+        Vector3 currentBoneDirection = currentRestRotation * forwardAxis;
+
+        // 3. Tính góc từ tư thế chuẩn MỚI đến vector của MediaPipe
+        Quaternion targetRotation = Quaternion.FromToRotation(currentBoneDirection, direction.normalized) * currentRestRotation;
 
         if (smoothing > 0f)
             targetBone.rotation = Quaternion.Slerp(targetBone.rotation, targetRotation, 1f - smoothing);
