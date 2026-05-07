@@ -218,6 +218,52 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 138292642}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &159166468
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 159166470}
+  - component: {fileID: 159166469}
+  m_Layer: 0
+  m_Name: World Point List
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &159166469
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 159166468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14d906acdce72f74292be85241ea75a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  scaleMultiplier: 100
+  hipHeightMeter: 0.9
+--- !u!4 &159166470
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 159166468}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -30.208878, y: -151.01166, z: 56.515663}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &420786853
 GameObject:
   m_ObjectHideFlags: 0
@@ -787,6 +833,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 940af041342f8ff4e9ccd5d1fbdd5eed,
         type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 940af041342f8ff4e9ccd5d1fbdd5eed,
+        type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -876,26 +927,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64a97aa65570a4e44a5ef60690a972d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  annotationParentName: Point List Annotation
+  annotationParentName: World Point List
+  mirrorLeftRight: 1
+  flipX: 1
+  flipZ: 0
+  smoothing: 0.3
+  showDebugLog: 1
   boneNamePrefix: 'mixamorig:'
   armatureRoot: {fileID: 0}
-  mpLeftShoulder: {fileID: 0}
-  mpRightShoulder: {fileID: 0}
-  mpLeftElbow: {fileID: 0}
-  mpRightElbow: {fileID: 0}
-  mpLeftWrist: {fileID: 0}
-  mpRightWrist: {fileID: 0}
-  boneHips: {fileID: 0}
+  dumpAllBoneNames: 0
   boneLeftArm: {fileID: 0}
   boneRightArm: {fileID: 0}
   boneLeftForeArm: {fileID: 0}
   boneRightForeArm: {fileID: 0}
   boneForwardAxis: {x: 0, y: 1, z: 0}
-  mirrorLeftRight: 1
-  flipZ: 1
-  smoothing: 0.3
-  showDebugLog: 1
-  dumpAllBoneNames: 1
 --- !u!114 &1977035778
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -908,18 +953,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11073dffd18a6d447b472a01e7f071fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  annotationParentName: Point List Annotation
+  annotationParentName: World Point List
+  mirrorLeftRight: 1
+  flipX: 1
+  flipZ: 0
+  smoothing: 0.3
+  showDebugLog: 1
   boneNamePrefix: 'mixamorig:'
   armatureRoot: {fileID: 0}
-  mpLeftShoulder: {fileID: 0}
-  mpRightShoulder: {fileID: 0}
-  mpLeftHip: {fileID: 0}
-  mpRightHip: {fileID: 0}
-  mpLeftKnee: {fileID: 0}
-  mpRightKnee: {fileID: 0}
-  mpLeftAnkle: {fileID: 0}
-  mpRightAnkle: {fileID: 0}
-  boneHips: {fileID: 0}
+  dumpAllBoneNames: 0
   boneLeftUpLeg: {fileID: 0}
   boneRightUpLeg: {fileID: 0}
   boneLeftLeg: {fileID: 0}
@@ -928,17 +970,11 @@ MonoBehaviour:
   positionScale: 1
   positionOffset: {x: 0, y: 0, z: 0}
   legForwardAxis: {x: 0, y: 1, z: 0}
-  mirrorLeftRight: 1
-  flipZ: 1
   rotateHips: 1
   invertBodyForward: 1
-  maxShoulderToTorsoRatio: 0.9
   zThreshold: 0.02
   invertRoll: 0
   invertYaw: 0
-  smoothing: 0.3
-  showDebugLog: 1
-  dumpAllBoneNames: 0
 --- !u!114 &1977035779
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -952,21 +988,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   annotationParentName: Point List Annotation
-  mpLeftShoulder: {fileID: 0}
-  mpRightShoulder: {fileID: 0}
-  mpLeftHip: {fileID: 0}
-  mpRightHip: {fileID: 0}
-  trackPosition: 1
-  anchorPoint: 0
-  positionOffset: {x: 0, y: -150, z: 0}
-  trackScale: 1
-  referenceTorsoHeight: 0.5
+  boneNamePrefix: 'mixamorig:'
+  armatureRoot: {fileID: 0}
+  autoCalculateScale: 1
+  autoCalculateOffset: 1
+  manualReferenceTorsoHeight: 0
+  manualPositionOffset: {x: 0, y: 0, z: 0}
   scaleMultiplier: 1
   mirrorLeftRight: 1
   flipZ: 0
   smoothing: 0.3
   showDebugLog: 1
-  calibrateTorsoHeight: 0
 --- !u!1001 &8571076842648159877
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1232,3 +1264,4 @@ SceneRoots:
   - {fileID: 420786856}
   - {fileID: 1064799461}
   - {fileID: 1974421440}
+  - {fileID: 159166470}
