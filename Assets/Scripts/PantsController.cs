@@ -1,6 +1,5 @@
 using UnityEngine;
 
-// Kế thừa ARClothingBase để dùng chung não bộ với Áo
 public class PantsController : ARClothingBase
 {
     [Header("Xương 3D - Quần")]
@@ -41,11 +40,9 @@ public class PantsController : ARClothingBase
 
     void LateUpdate()
     {
-        // 1. Lấy dữ liệu 2D/screen từ Point List Annotation
         TryFindLandmarksBase();
         if (!landmarksFound) return;
 
-        // 2. Tìm xương Quần
         if (!bonesFound) TryFindBones();
         if (!bonesFound) return;
 
@@ -55,7 +52,6 @@ public class PantsController : ARClothingBase
             initialRotCached = true;
         }
 
-        // 3. Option: Di chuyển Hips (Nếu dùng ARBodyTracker thì tắt cái này đi)
         if (controlBodyPosition && boneHips != null && mpLeftHip != null && mpRightHip != null)
         {
             Vector3 centerHip = (mpLeftHip.position + mpRightHip.position) / 2f;
@@ -65,10 +61,8 @@ public class PantsController : ARClothingBase
             else boneHips.position = targetPos;
         }
 
-        // 4. Xoay cột sống
         if (rotateHips) RotateHips();
 
-        // 5. Bẻ khớp chân
         RotateLimbBase(mpLeftHip, mpLeftKnee, boneLeftUpLeg, leftUpLegInitialRot, legForwardAxis);
         RotateLimbBase(mpLeftKnee, mpLeftAnkle, boneLeftLeg, leftLegInitialRot, legForwardAxis);
         RotateLimbBase(mpRightHip, mpRightKnee, boneRightUpLeg, rightUpLegInitialRot, legForwardAxis);
@@ -78,7 +72,6 @@ public class PantsController : ARClothingBase
     void TryFindWorldParent()
     {
         if (worldParentFound) return;
-
         worldSearchTimer += Time.deltaTime;
         if (worldSearchTimer < 0.5f) return;
         worldSearchTimer = 0f;
@@ -125,14 +118,12 @@ public class PantsController : ARClothingBase
         if (boneHips == null || mpLeftHip == null || mpRightHip == null ||
             mpLeftShoulder == null || mpRightShoulder == null) return;
 
-        // GIỮ NGUYÊN logic cũ: X/Y từ 2D
         Vector3 shoulderCenter = (mpLeftShoulder.position + mpRightShoulder.position) / 2f;
         Vector3 hipCenter = (mpLeftHip.position + mpRightHip.position) / 2f;
 
         Vector3 upVector = (shoulderCenter - hipCenter).normalized;
         Vector3 rightVector = (mpRightShoulder.position - mpLeftShoulder.position).normalized;
 
-        // GIỮ NGUYÊN logic cũ: chỉ nhét depth Z của world shoulder vào rightVector.z
         bool has3DDepth = false;
 
 #if UNITY_WEBGL
@@ -140,7 +131,8 @@ public class PantsController : ARClothingBase
         {
             TryFindWorldParent();
 
-            if (worldParentFound && worldParent != null)
+            // [SỬA LỖI] Đảm bảo Transform thực sự có con trước khi GetChild
+            if (worldParentFound && worldParent != null && worldParent.childCount >= 33)
             {
                 int indexL = mirrorLeftRight ? 12 : 11;
                 int indexR = mirrorLeftRight ? 11 : 12;
@@ -148,9 +140,13 @@ public class PantsController : ARClothingBase
                 Vector3 shoulderL3D = worldParent.GetChild(indexL).position;
                 Vector3 shoulderR3D = worldParent.GetChild(indexR).position;
 
-                rightVector.z = (shoulderR3D - shoulderL3D).normalized.z;
-                rightVector = rightVector.normalized;
-                has3DDepth = true;
+                // Cảnh giác với trường hợp điểm bị chập trùng ở gốc 0,0,0
+                if (Vector3.Distance(shoulderL3D, shoulderR3D) > 0.001f)
+                {
+                    rightVector.z = (shoulderR3D - shoulderL3D).normalized.z;
+                    rightVector = rightVector.normalized;
+                    has3DDepth = true;
+                }
             }
         }
 #endif
@@ -165,7 +161,6 @@ public class PantsController : ARClothingBase
                 {
                     var landmarks = result.poseWorldLandmarks[0].landmarks;
 
-                    // GIỮ NGUYÊN index logic cũ của bạn
                     int indexL = mirrorLeftRight ? 12 : 11;
                     int indexR = mirrorLeftRight ? 11 : 12;
 

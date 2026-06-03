@@ -3,7 +3,6 @@ using UnityEngine;
 public class ARBodyTracker : MonoBehaviour
 {
     [Header("Nguồn dữ liệu (BẮT BUỘC dùng 2D)")]
-    [Tooltip("Để model chạy theo người trên màn hình, BẮT BUỘC dùng Point List Annotation")]
     public string annotationParentName = "Point List Annotation";
 
     [Header("Xương 3D của Model (Dùng để Auto-Fit)")]
@@ -11,10 +10,16 @@ public class ARBodyTracker : MonoBehaviour
     public Transform armatureRoot;
 
     [Header("Tự động Căn chỉnh (Auto-Fit)")]
-    [Tooltip("Tự động đo chiều dài lưng của model 3D để phóng to cho vừa")]
     public bool autoCalculateScale = true;
-    [Tooltip("Tự động đo khoảng cách từ gốc chân lên hông để bù trừ vị trí Y")]
     public bool autoCalculateOffset = true;
+
+    [Header("Giới hạn Kích thước (Chống sập Scale WebGL)")]
+    [Tooltip("Chặn tính toán nếu Landmark bị chụm lại lỗi ở đầu frame (khoảng cách < 5cm)")]
+    public float minimumValidTorsoHeight = 0.05f;
+    [Tooltip("Kích thước tối thiểu không để model biến mất (Ví dụ: 0.5)")]
+    public float minScaleLimit = 0.5f;
+    [Tooltip("Kích thước tối đa không để model phình to quá màn hình (Ví dụ: 2.5)")]
+    public float maxScaleLimit = 3000f;
 
     [Header("Cấu hình Thủ công (Dùng khi tắt Auto)")]
     public float manualReferenceTorsoHeight = 0.5f;
@@ -27,19 +32,11 @@ public class ARBodyTracker : MonoBehaviour
     [Range(0f, 1f)] public float smoothing = 0.3f;
     public bool showDebugLog = true;
 
-    // Xương Model nội bộ để đo đạc
-    private Transform boneHips;
-    private Transform boneLeftArm;
-    private Transform boneRightArm;
-
-    // Landmark 2D
+    private Transform boneHips, boneLeftArm, boneRightArm;
     private Transform mpLeftShoulder, mpRightShoulder, mpLeftHip, mpRightHip;
-
     private Vector3 initialScale;
-    private bool landmarksFound = false;
-    private bool bonesFound = false;
-    private float searchTimer = 0f;
-    private float autoReferenceTorsoHeight = 0.5f;
+    private bool landmarksFound = false, bonesFound = false;
+    private float searchTimer = 0f, autoReferenceTorsoHeight = 0.5f;
 
     void Start()
     {
@@ -55,8 +52,8 @@ public class ARBodyTracker : MonoBehaviour
 
         if (bonesFound)
         {
-            UpdateScale(); // Bắt buộc Scale trước
-            UpdatePosition(); // Tính toán vị trí dựa trên model đã được Scale
+            UpdateScale();
+            UpdatePosition();
         }
     }
 
@@ -86,7 +83,6 @@ public class ARBodyTracker : MonoBehaviour
         }
 
         landmarksFound = true;
-        if (showDebugLog) Debug.Log("🟢 [AR Tracker] Đã tìm thấy Landmark 2D.");
     }
 
     void TryFindBones()
@@ -107,10 +103,8 @@ public class ARBodyTracker : MonoBehaviour
             bonesFound = true;
             if (autoCalculateScale)
             {
-                // Tự động đo khoảng cách vật lý của 3D model
                 Vector3 modelShoulderCenter = (boneLeftArm.position + boneRightArm.position) / 2f;
                 autoReferenceTorsoHeight = Vector3.Distance(modelShoulderCenter, boneHips.position);
-                if (showDebugLog) Debug.Log("🟢 [AR Tracker] Tự động đo lưng Model: " + autoReferenceTorsoHeight);
             }
         }
     }
@@ -145,11 +139,17 @@ public class ARBodyTracker : MonoBehaviour
         Vector3 mpHipCenter = (mpLeftHip.position + mpRightHip.position) / 2f;
 
         float currentTorsoHeight = Vector3.Distance(mpShoulderCenter, mpHipCenter);
-        if (currentTorsoHeight < 0.001f) return;
 
-        // Dùng kích thước tự đo làm chuẩn
+        // [QUAN TRỌNG] Chặn Frame rác làm sập Scale
+        if (currentTorsoHeight < minimumValidTorsoHeight) return;
+
         float refHeight = autoCalculateScale ? autoReferenceTorsoHeight : manualReferenceTorsoHeight;
+        if (refHeight < 0.001f) refHeight = 0.5f; // Tránh chia cho 0
+
         float scaleFactor = (currentTorsoHeight / refHeight) * scaleMultiplier;
+
+        // [QUAN TRỌNG] Kẹp giới hạn kích thước an toàn tuyệt đối
+        scaleFactor = Mathf.Clamp(scaleFactor, minScaleLimit, maxScaleLimit);
 
         Vector3 targetScale = initialScale * scaleFactor;
 
@@ -168,16 +168,11 @@ public class ARBodyTracker : MonoBehaviour
 
         if (autoCalculateOffset && boneHips != null)
         {
-            // TỰ ĐỘNG BÙ TRỪ VỊ TRÍ
-            // Đo khoảng cách từ Bàn chân (Transform) lên Hông (boneHips) sau khi đã scale
             Vector3 rootToHipOffset = boneHips.position - transform.position;
-
-            // Trừ đi khoảng cách đó để Hông model dán chặt vào Hông MediaPipe
             targetPos = anchorPos - rootToHipOffset;
         }
         else
         {
-            // Trở về thủ công nếu tắt Auto
             targetPos += manualPositionOffset;
         }
 
