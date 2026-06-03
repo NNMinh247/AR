@@ -1,10 +1,14 @@
 using UnityEngine;
 
-// Định nghĩa cấu trúc JSON để Unity hiểu
 [System.Serializable]
 public class MediaPipeLandmark
 {
+    // x/y/z: screen landmarks đã mirror theo hình video trong index.html.
+    // z mặc định = 0 để không làm tay/chân bị xoắn hoặc model bị xa camera.
     public float x, y, z, visibility;
+
+    // Full world landmarks, không bỏ world.
+    public float wx, wy, wz;
 }
 
 [System.Serializable]
@@ -15,46 +19,132 @@ public class LandmarkWrapper
 
 public class WebBridge : MonoBehaviour
 {
-    public Transform annotationParent; // Kéo thả GameObject "Point List Annotation" vào đây
-    private Transform[] landmarks = new Transform[33];
+    [Header("Screen Landmarks - Point List Annotation")]
+    public Transform annotationParent;
+    public string annotationParentName = "Point List Annotation";
+
+    [Tooltip("Tăng nếu model nhỏ, giảm nếu model lớn. Gợi ý: 20 - 40.")]
+    public float screenScale = 30f;
+
+    [Tooltip("ĐỂ FALSE với index_v3, vì HTML đã mirror x trước khi gửi sang Unity.")]
+    public bool applyExtraMirrorX = false;
+
+    [Tooltip("Nên để false. Nếu true sẽ đưa z vào Point List Annotation và có thể làm sai tay/model nhỏ.")]
+    public bool useDepthInScreenPoints = false;
+
+    public float screenDepthScale = 1f;
+
+    [Header("World Landmarks - World Point List Annotation")]
+    public Transform worldAnnotationParent;
+    public string worldAnnotationParentName = "World Point List Annotation";
+
+    [Tooltip("Scale world giống ARWorldPoseBridge cũ.")]
+    public float worldScale = 100f;
+
+    [Header("Debug")]
+    public bool showDebugLog = true;
+    public int debugEveryNFrames = 120;
+
+    private readonly Transform[] screenPoints = new Transform[33];
+    private readonly Transform[] worldPoints = new Transform[33];
+
+    private bool initialized = false;
+    private int frameCounter = 0;
 
     void Start()
     {
-        // Lấy tham chiếu đến 33 điểm con
-        if (annotationParent != null && annotationParent.childCount >= 33)
+        EnsureInitialized();
+    }
+
+    void EnsureInitialized()
+    {
+        if (initialized) return;
+
+        if (annotationParent == null)
         {
-            for (int i = 0; i < 33; i++)
+            GameObject obj = GameObject.Find(annotationParentName);
+            if (obj == null) obj = new GameObject(annotationParentName);
+            annotationParent = obj.transform;
+        }
+
+        if (worldAnnotationParent == null)
+        {
+            GameObject obj = GameObject.Find(worldAnnotationParentName);
+            if (obj == null) obj = new GameObject(worldAnnotationParentName);
+            worldAnnotationParent = obj.transform;
+        }
+
+        InitPoints(annotationParent, screenPoints, "Point_");
+        InitPoints(worldAnnotationParent, worldPoints, "WorldPoint_");
+
+        initialized = true;
+    }
+
+    void InitPoints(Transform parent, Transform[] arr, string prefix)
+    {
+        if (parent == null) return;
+
+        for (int i = 0; i < 33; i++)
+        {
+            if (i < parent.childCount)
             {
-                landmarks[i] = annotationParent.GetChild(i);
+                arr[i] = parent.GetChild(i);
+            }
+            else
+            {
+                GameObject pt = new GameObject(prefix + i);
+                pt.transform.SetParent(parent);
+                arr[i] = pt.transform;
             }
         }
     }
 
-    // Hàm này được gọi từ JavaScript
     public void ReceiveLandmarks(string jsonString)
     {
-        if (annotationParent == null) return;
+        EnsureInitialized();
 
-        // Giải mã JSON
         LandmarkWrapper data = JsonUtility.FromJson<LandmarkWrapper>(jsonString);
+        if (data == null || data.items == null || data.items.Length < 33)
+            return;
 
-        if (data != null && data.items != null && data.items.Length == 33)
+        for (int i = 0; i < 33; i++)
         {
-            for (int i = 0; i < 33; i++)
-            {
-                // MediaPipe Web trả về tọa độ chuẩn hóa (0-1). 
-                // X và Y cần được scale lên để khớp với không gian Unity.
-                // Trục Y của Web hướng xuống, Unity hướng lên nên cần đảo ngược.
-                // Bạn có thể nhân với 10 (hoặc số khác) tùy theo scale model của bạn.
-                float scaleFac = 10f;
+            MediaPipeLandmark lm = data.items[i];
 
-                // Trục X có thể cần đảo dấu (tùy thuộc vào việc lật gương camera trên Web)
-                float posX = (data.items[i].x - 0.5f) * -scaleFac;
-                float posY = (0.5f - data.items[i].y) * scaleFac;
-                float posZ = data.items[i].z * scaleFac; // Z của MediaPipe thường khá nhỏ
+            /*
+              Point List Annotation:
+              - dùng x/y screen đã mirror theo video.
+              - z mặc định = 0.
+              - Không dùng world x/y ở đây.
+            */
+            float sx = (lm.x - 0.5f) * screenScale;
+            if (applyExtraMirrorX) sx = -sx;
 
-                landmarks[i].localPosition = new Vector3(posX, posY, posZ);
-            }
+            float sy = (0.5f - lm.y) * screenScale;
+            float sz = useDepthInScreenPoints ? lm.z * screenDepthScale : 0f;
+
+            if (screenPoints[i] != null)
+                screenPoints[i].localPosition = new Vector3(sx, sy, sz);
+
+            /*
+              World Point List Annotation:
+              Giữ đúng quy đổi của ARWorldPoseBridge cũ:
+              new Vector3(-lm.x, -lm.y, lm.z) * scale
+            */
+            float wx = -lm.wx * worldScale;
+            float wy = -lm.wy * worldScale;
+            float wz = lm.wz * worldScale;
+
+            if (worldPoints[i] != null)
+                worldPoints[i].localPosition = new Vector3(wx, wy, wz);
+        }
+
+        frameCounter++;
+
+        if (showDebugLog && debugEveryNFrames > 0 && frameCounter % debugEveryNFrames == 0)
+        {
+            Vector3 hip = (screenPoints[23].position + screenPoints[24].position) * 0.5f;
+            Debug.Log("[WebBridge] Screen hip center = " + hip);
         }
     }
 }

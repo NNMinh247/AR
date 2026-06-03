@@ -22,8 +22,8 @@ public class ARBodyTracker : MonoBehaviour
     [Range(0.1f, 3f)] public float scaleMultiplier = 1f;
 
     [Header("Chung")]
-    public bool mirrorLeftRight = false;
-    public bool flipZ = true;
+    public bool mirrorLeftRight = true;
+    public bool flipZ = false;
     [Range(0f, 1f)] public float smoothing = 0.3f;
     public bool showDebugLog = true;
 
@@ -72,17 +72,17 @@ public class ARBodyTracker : MonoBehaviour
 
         if (mirrorLeftRight)
         {
-            mpLeftShoulder = parentObj.transform.GetChild(12);
-            mpRightShoulder = parentObj.transform.GetChild(11);
-            mpLeftHip = parentObj.transform.GetChild(24);
-            mpRightHip = parentObj.transform.GetChild(23);
-        }
-        else
-        {
             mpLeftShoulder = parentObj.transform.GetChild(11);
             mpRightShoulder = parentObj.transform.GetChild(12);
             mpLeftHip = parentObj.transform.GetChild(23);
             mpRightHip = parentObj.transform.GetChild(24);
+        }
+        else
+        {
+            mpLeftShoulder = parentObj.transform.GetChild(12);
+            mpRightShoulder = parentObj.transform.GetChild(11);
+            mpLeftHip = parentObj.transform.GetChild(24);
+            mpRightHip = parentObj.transform.GetChild(23);
         }
 
         landmarksFound = true;

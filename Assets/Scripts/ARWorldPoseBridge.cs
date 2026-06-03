@@ -21,6 +21,7 @@ public class ARWorldPoseBridge : MonoBehaviour
 
     void Update()
     {
+#if UNITY_EDITOR || !UNITY_WEBGL
         if (!Mediapipe.Unity.Sample.PoseLandmarkDetection.PoseLandmarkerRunner.HasResult) return;
 
         lock (Mediapipe.Unity.Sample.PoseLandmarkDetection.PoseLandmarkerRunner.DataLock)
@@ -38,5 +39,6 @@ public class ARWorldPoseBridge : MonoBehaviour
                 worldPoints[i].localPosition = new Vector3(-lm.x, -lm.y, lm.z) * scaleMultiplier;
             }
         }
+#endif
     }
 }

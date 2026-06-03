@@ -12,7 +12,7 @@ public class ARBaseScript : MonoBehaviour
     [Tooltip("BẬT NẾU tay đưa sang ngang (Trái/Phải) bị ngược")]
     public bool flipX = true;
     [Tooltip("BẬT NẾU tay đưa ra trước mặt bị đâm ra sau lưng")]
-    public bool flipZ = true;
+    public bool flipZ = false;
 
     [Range(0f, 1f)]
     public float smoothing = 0.3f;
