@@ -3,11 +3,7 @@ using UnityEngine;
 [System.Serializable]
 public class MediaPipeLandmark
 {
-    // x/y/z: screen landmarks đã mirror theo hình video trong index.html.
-    // z mặc định = 0 để không làm tay/chân bị xoắn hoặc model bị xa camera.
     public float x, y, z, visibility;
-
-    // Full world landmarks, không bỏ world.
     public float wx, wy, wz;
 }
 
@@ -23,22 +19,24 @@ public class WebBridge : MonoBehaviour
     public Transform annotationParent;
     public string annotationParentName = "Point List Annotation";
 
-    [Tooltip("Tăng nếu model nhỏ, giảm nếu model lớn. Gợi ý: 20 - 40.")]
-    public float screenScale = 30f;
+    [Header("WebGL Auto-Scaling (Giải pháp chống thu nhỏ)")]
+    [Tooltip("BẬT ĐỂ TỰ ĐỘNG KHỚP TỌA ĐỘ VỚI CAMERA BẤT CHẤP KÍCH THƯỚC WEBGL")]
+    public bool autoMatchCameraBounds = true;
 
-    [Tooltip("ĐỂ FALSE với index_v3, vì HTML đã mirror x trước khi gửi sang Unity.")]
+    [Tooltip("Tỷ lệ khung hình thực tế của Webcam (Thường là 16:9 = 1.777 hoặc 4:3 = 1.333). Điều này giúp khung xương không bị méo!")]
+    public float webcamAspectRatio = 1.777f;
+
+    [Tooltip("Nếu TẮT Auto Match ở trên, nó sẽ dùng hệ số thủ công này")]
+    public float fallbackScreenScale = 30f;
+
+    [Header("Extra Settings")]
     public bool applyExtraMirrorX = false;
-
-    [Tooltip("Nên để false. Nếu true sẽ đưa z vào Point List Annotation và có thể làm sai tay/model nhỏ.")]
     public bool useDepthInScreenPoints = false;
-
     public float screenDepthScale = 1f;
 
     [Header("World Landmarks - World Point List Annotation")]
     public Transform worldAnnotationParent;
-    public string worldAnnotationParentName = "World Point List Annotation";
-
-    [Tooltip("Scale world giống ARWorldPoseBridge cũ.")]
+    public string worldAnnotationParentName = "World Point List";
     public float worldScale = 100f;
 
     [Header("Debug")]
@@ -83,13 +81,9 @@ public class WebBridge : MonoBehaviour
     void InitPoints(Transform parent, Transform[] arr, string prefix)
     {
         if (parent == null) return;
-
         for (int i = 0; i < 33; i++)
         {
-            if (i < parent.childCount)
-            {
-                arr[i] = parent.GetChild(i);
-            }
+            if (i < parent.childCount) arr[i] = parent.GetChild(i);
             else
             {
                 GameObject pt = new GameObject(prefix + i);
@@ -104,33 +98,54 @@ public class WebBridge : MonoBehaviour
         EnsureInitialized();
 
         LandmarkWrapper data = JsonUtility.FromJson<LandmarkWrapper>(jsonString);
-        if (data == null || data.items == null || data.items.Length < 33)
-            return;
+        if (data == null || data.items == null || data.items.Length < 33) return;
+
+        // --- BƯỚC QUAN TRỌNG NHẤT: TÍNH TOÁN KÍCH THƯỚC WORLD SPACE ---
+        // --- BƯỚC QUAN TRỌNG NHẤT: TÍNH TOÁN KÍCH THƯỚC WORLD SPACE ---
+        float worldHeight = fallbackScreenScale;
+        float worldWidth = fallbackScreenScale * webcamAspectRatio;
+
+        if (autoMatchCameraBounds && Camera.main != null)
+        {
+            // Lấy khoảng cách từ Camera đến Parent Object
+            float distance = Mathf.Abs(Camera.main.transform.position.z - annotationParent.position.z);
+            if (distance < 0.1f) distance = 10f; // Dự phòng an toàn
+
+            // Tính chiều cao không gian 3D dựa vào FOV của Camera
+            if (Camera.main.orthographic)
+            {
+                worldHeight = Camera.main.orthographicSize * 2f;
+            }
+            else
+            {
+                worldHeight = 2.0f * distance * Mathf.Tan(Camera.main.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            }
+
+            // [ĐÃ SỬA] Đo tỷ lệ màn hình WebGL an toàn (Chống lỗi chia cho 0)
+            float actualAspectRatio = 1.777f;
+            if (Screen.height > 0)
+            {
+                actualAspectRatio = (float)Screen.width / Screen.height;
+            }
+
+            worldWidth = worldHeight * actualAspectRatio;
+        }
 
         for (int i = 0; i < 33; i++)
         {
             MediaPipeLandmark lm = data.items[i];
 
-            /*
-              Point List Annotation:
-              - dùng x/y screen đã mirror theo video.
-              - z mặc định = 0.
-              - Không dùng world x/y ở đây.
-            */
-            float sx = (lm.x - 0.5f) * screenScale;
+            // Áp dụng tính toán Screen Points với World Width & Height chuẩn
+            float sx = (lm.x - 0.5f) * worldWidth;
             if (applyExtraMirrorX) sx = -sx;
 
-            float sy = (0.5f - lm.y) * screenScale;
+            float sy = (0.5f - lm.y) * worldHeight;
             float sz = useDepthInScreenPoints ? lm.z * screenDepthScale : 0f;
 
             if (screenPoints[i] != null)
                 screenPoints[i].localPosition = new Vector3(sx, sy, sz);
 
-            /*
-              World Point List Annotation:
-              Giữ đúng quy đổi của ARWorldPoseBridge cũ:
-              new Vector3(-lm.x, -lm.y, lm.z) * scale
-            */
+            // World Points (Dữ liệu 3D thực từ thuật toán MediaPipe)
             float wx = -lm.wx * worldScale;
             float wy = -lm.wy * worldScale;
             float wz = lm.wz * worldScale;
@@ -140,11 +155,9 @@ public class WebBridge : MonoBehaviour
         }
 
         frameCounter++;
-
         if (showDebugLog && debugEveryNFrames > 0 && frameCounter % debugEveryNFrames == 0)
         {
-            Vector3 hip = (screenPoints[23].position + screenPoints[24].position) * 0.5f;
-            Debug.Log("[WebBridge] Screen hip center = " + hip);
+            Debug.Log($"[WebBridge] Auto Bounds={autoMatchCameraBounds}, Width={worldWidth}, Height={worldHeight}");
         }
     }
 }

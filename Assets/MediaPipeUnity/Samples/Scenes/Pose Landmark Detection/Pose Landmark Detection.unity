@@ -258,7 +258,7 @@ Transform:
   m_GameObject: {fileID: 159166468}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -30.208878, y: -151.01166, z: 56.515663}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -928,6 +928,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   annotationParentName: World Point List
+  worldAnnotationParentName: World Point List
   mirrorLeftRight: 1
   flipX: 1
   flipZ: 0
@@ -954,6 +955,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   annotationParentName: World Point List
+  worldAnnotationParentName: World Point List
   mirrorLeftRight: 1
   flipX: 1
   flipZ: 0
@@ -974,7 +976,7 @@ MonoBehaviour:
   invertBodyForward: 1
   zThreshold: 0.02
   invertRoll: 0
-  invertYaw: 0
+  invertYaw: 1
 --- !u!114 &1977035779
 MonoBehaviour:
   m_ObjectHideFlags: 0

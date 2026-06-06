@@ -1,6 +1,5 @@
 using UnityEngine;
 
-// Đổi kế thừa từ MonoBehaviour sang ARClothingBase để dùng chung logic
 public class ShirtController : ARClothingBase
 {
     [Header("Xương 3D - Áo")]
@@ -22,33 +21,36 @@ public class ShirtController : ARClothingBase
 
     void LateUpdate()
     {
-        // 1. Gọi hàm tìm Landmark 2D đã fix lỗi Soi Gương ở file ARBaseScript
         TryFindLandmarksBase();
         if (!landmarksFound) return;
 
-        // 2. Tìm xương nếu chưa tìm thấy
         if (!bonesFound) TryFindBones();
         if (!bonesFound) return;
 
-        // 3. Lưu giá trị xoay gốc của xương
         if (!initialRotCached)
         {
             CacheInitialRotations();
             initialRotCached = true;
         }
 
-        // 4. Sử dụng hàm bẻ khớp dùng chung RotateLimbBase từ ARClothingBase
-        // Điều khiển cánh tay và cẳng tay
-        RotateLimbBase(mpLeftShoulder, mpLeftElbow, boneLeftArm, leftArmInitialRot, boneForwardAxis);
-        RotateLimbBase(mpLeftElbow, mpLeftWrist, boneLeftForeArm, leftForeArmInitialRot, boneForwardAxis);
+        // Chọn lọc điểm an toàn
+        Transform lShoulder = PickRotationPoint(worldLeftShoulder, mpLeftShoulder);
+        Transform lElbow = PickRotationPoint(worldLeftElbow, mpLeftElbow);
+        Transform lWrist = PickRotationPoint(worldLeftWrist, mpLeftWrist);
 
-        RotateLimbBase(mpRightShoulder, mpRightElbow, boneRightArm, rightArmInitialRot, boneForwardAxis);
-        RotateLimbBase(mpRightElbow, mpRightWrist, boneRightForeArm, rightForeArmInitialRot, boneForwardAxis);
+        Transform rShoulder = PickRotationPoint(worldRightShoulder, mpRightShoulder);
+        Transform rElbow = PickRotationPoint(worldRightElbow, mpRightElbow);
+        Transform rWrist = PickRotationPoint(worldRightWrist, mpRightWrist);
+
+        RotateLimbBase(lShoulder, lElbow, boneLeftArm, leftArmInitialRot, boneForwardAxis);
+        RotateLimbBase(lElbow, lWrist, boneLeftForeArm, leftForeArmInitialRot, boneForwardAxis);
+
+        RotateLimbBase(rShoulder, rElbow, boneRightArm, rightArmInitialRot, boneForwardAxis);
+        RotateLimbBase(rElbow, rWrist, boneRightForeArm, rightForeArmInitialRot, boneForwardAxis);
     }
 
     void TryFindBones()
     {
-        // Sử dụng hàm tìm xương gốc từ ARClothingBase
         if (armatureRoot == null)
         {
             Transform hips = FindInSceneBase(boneNamePrefix + "Hips");
@@ -57,10 +59,7 @@ public class ShirtController : ARClothingBase
 
         Transform searchRoot = armatureRoot != null ? armatureRoot : transform;
 
-        // Cần Hips để làm mốc tính toán độ lệch xoay
         boneHips = FindBoneRecursiveBase(searchRoot, boneNamePrefix + "Hips");
-
-        // Tìm các xương cánh tay cụ thể cho Áo
         boneLeftArm = FindBoneRecursiveBase(searchRoot, boneNamePrefix + "LeftArm");
         boneRightArm = FindBoneRecursiveBase(searchRoot, boneNamePrefix + "RightArm");
         boneLeftForeArm = FindBoneRecursiveBase(searchRoot, boneNamePrefix + "LeftForeArm");
@@ -74,7 +73,6 @@ public class ShirtController : ARClothingBase
     {
         if (boneHips == null) return;
         hipsInitialRot = boneHips.rotation;
-
         leftArmInitialRot = boneLeftArm.rotation;
         rightArmInitialRot = boneRightArm.rotation;
         leftForeArmInitialRot = boneLeftForeArm.rotation;

@@ -153,12 +153,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   annotationParent: {fileID: 1805549154}
   annotationParentName: Point List Annotation
-  screenScale: 100
-  applyExtraMirrorX: 1
-  useDepthInScreenPoints: 0
-  screenDepthScale: 1
+  autoMatchCameraBounds: 1
+  webcamAspectRatio: 1.777
+  fallbackScreenScale: 10
+  applyExtraMirrorX: 0
+  useDepthInScreenPoints: 1
+  screenDepthScale: 30
   worldAnnotationParent: {fileID: 159166470}
-  worldAnnotationParentName: World Point List Annotation
+  worldAnnotationParentName: World Point List
   worldScale: 100
   showDebugLog: 1
   debugEveryNFrames: 120
@@ -188,7 +190,7 @@ GameObject:
   - component: {fileID: 159166470}
   - component: {fileID: 159166469}
   m_Layer: 0
-  m_Name: World Point List Annotation
+  m_Name: World Point List
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -316,7 +318,7 @@ Transform:
   m_GameObject: {fileID: 1805549153}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.025727, y: 1.6627722, z: -5.711142}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -682,6 +684,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   annotationParentName: World Point List
+  worldAnnotationParentName: World Point List
   mirrorLeftRight: 1
   flipX: 1
   flipZ: 0
@@ -708,6 +711,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   annotationParentName: World Point List
+  worldAnnotationParentName: World Point List
   mirrorLeftRight: 1
   flipX: 1
   flipZ: 0
@@ -729,8 +733,6 @@ MonoBehaviour:
   zThreshold: 0.02
   invertRoll: 0
   invertYaw: 0
-  useWebGLWorldLandmarks: 1
-  worldAnnotationParentName: World Point List Annotation
 --- !u!114 &1977035779
 MonoBehaviour:
   m_ObjectHideFlags: 0

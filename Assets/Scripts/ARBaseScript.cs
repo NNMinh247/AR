@@ -5,75 +5,96 @@ public class ARBaseScript : MonoBehaviour
     [Header("Chung - Landmark (BẮT BUỘC DÙNG 2D)")]
     public string annotationParentName = "Point List Annotation";
 
-    [Tooltip("TÍCH VÀO ĐÂY để bật chế độ Soi Gương chuẩn")]
-    public bool mirrorLeftRight = true;
+    [Header("Chung - World Landmark (BẮT BUỘC DÙNG 3D ĐỂ XOAY)")]
+    public string worldAnnotationParentName = "World Point List Annotation";
 
-    [Header("Lật Trục (Sửa lỗi ngược hướng)")]
-    [Tooltip("BẬT NẾU tay đưa sang ngang (Trái/Phải) bị ngược")]
+    public bool mirrorLeftRight = true;
     public bool flipX = true;
-    [Tooltip("BẬT NẾU tay đưa ra trước mặt bị đâm ra sau lưng")]
     public bool flipZ = false;
 
-    [Range(0f, 1f)]
-    public float smoothing = 0.3f;
+    [Range(0f, 1f)] public float smoothing = 0.3f;
     public bool showDebugLog = true;
 
-    // Dữ liệu Landmark dùng chung
-    protected Transform mpLeftShoulder, mpRightShoulder;
-    protected Transform mpLeftHip, mpRightHip;
+    // Dữ liệu 2D
+    protected Transform mpLeftShoulder, mpRightShoulder, mpLeftHip, mpRightHip;
     protected Transform mpLeftElbow, mpRightElbow, mpLeftWrist, mpRightWrist;
     protected Transform mpLeftKnee, mpRightKnee, mpLeftAnkle, mpRightAnkle;
 
+    // Dữ liệu 3D
+    protected Transform worldLeftShoulder, worldRightShoulder, worldLeftHip, worldRightHip;
+    protected Transform worldLeftElbow, worldRightElbow, worldLeftWrist, worldRightWrist;
+    protected Transform worldLeftKnee, worldRightKnee, worldLeftAnkle, worldRightAnkle;
+
     protected bool landmarksFound = false;
+    protected bool worldLandmarksFound = false; // Thêm cờ kiểm tra 3D
     private float searchTimer = 0f;
 
-    // LOGIC TÌM LANDMARK GỐC 100%
     protected void TryFindLandmarksBase()
     {
-        if (landmarksFound) return;
+        if (landmarksFound && worldLandmarksFound) return;
 
         searchTimer += Time.deltaTime;
         if (searchTimer < 0.5f) return;
         searchTimer = 0f;
 
         GameObject parentObj = GameObject.Find(annotationParentName);
-        if (parentObj == null || parentObj.transform.childCount < 33) return;
-
-        Transform mpLeftShoulder_Raw = parentObj.transform.GetChild(11);
-        Transform mpRightShoulder_Raw = parentObj.transform.GetChild(12);
-        Transform mpLeftElbow_Raw = parentObj.transform.GetChild(13);
-        Transform mpRightElbow_Raw = parentObj.transform.GetChild(14);
-        Transform mpLeftWrist_Raw = parentObj.transform.GetChild(15);
-        Transform mpRightWrist_Raw = parentObj.transform.GetChild(16);
-
-        Transform mpLeftHip_Raw = parentObj.transform.GetChild(23);
-        Transform mpRightHip_Raw = parentObj.transform.GetChild(24);
-        Transform mpLeftKnee_Raw = parentObj.transform.GetChild(25);
-        Transform mpRightKnee_Raw = parentObj.transform.GetChild(26);
-        Transform mpLeftAnkle_Raw = parentObj.transform.GetChild(27);
-        Transform mpRightAnkle_Raw = parentObj.transform.GetChild(28);
-
-        if (mirrorLeftRight)
+        if (parentObj != null && parentObj.transform.childCount >= 33)
         {
-            mpLeftShoulder = mpLeftShoulder_Raw; mpRightShoulder = mpRightShoulder_Raw;
-            mpLeftElbow = mpLeftElbow_Raw; mpRightElbow = mpRightElbow_Raw;
-            mpLeftWrist = mpLeftWrist_Raw; mpRightWrist = mpRightWrist_Raw;
+            AssignPoints(parentObj.transform, true);
+            landmarksFound = true;
+        }
 
-            mpLeftHip = mpLeftHip_Raw; mpRightHip = mpRightHip_Raw;
-            mpLeftKnee = mpLeftKnee_Raw; mpRightKnee = mpRightKnee_Raw;
-            mpLeftAnkle = mpLeftAnkle_Raw; mpRightAnkle = mpRightAnkle_Raw;
+        GameObject worldObj = GameObject.Find(worldAnnotationParentName);
+        if (worldObj != null && worldObj.transform.childCount >= 33)
+        {
+            AssignPoints(worldObj.transform, false);
+            worldLandmarksFound = true;
+        }
+    }
+
+    // Hàm an toàn: Ưu tiên dùng 3D, nếu chưa kịp load thì dùng tạm 2D để không bị đơ
+    protected Transform PickRotationPoint(Transform worldPt, Transform screenPt)
+    {
+        return (worldLandmarksFound && worldPt != null) ? worldPt : screenPt;
+    }
+
+    private void AssignPoints(Transform parent, bool is2D)
+    {
+        Transform lS = parent.GetChild(11), rS = parent.GetChild(12);
+        Transform lE = parent.GetChild(13), rE = parent.GetChild(14);
+        Transform lW = parent.GetChild(15), rW = parent.GetChild(16);
+        Transform lH = parent.GetChild(23), rH = parent.GetChild(24);
+        Transform lK = parent.GetChild(25), rK = parent.GetChild(26);
+        Transform lA = parent.GetChild(27), rA = parent.GetChild(28);
+
+        if (!mirrorLeftRight)
+        {
+            Transform temp;
+            temp = lS; lS = rS; rS = temp;
+            temp = lE; lE = rE; rE = temp;
+            temp = lW; lW = rW; rW = temp;
+            temp = lH; lH = rH; rH = temp;
+            temp = lK; lK = rK; rK = temp;
+            temp = lA; lA = rA; rA = temp;
+        }
+
+        if (is2D)
+        {
+            mpLeftShoulder = lS; mpRightShoulder = rS;
+            mpLeftElbow = lE; mpRightElbow = rE;
+            mpLeftWrist = lW; mpRightWrist = rW;
+            mpLeftHip = lH; mpRightHip = rH;
+            mpLeftKnee = lK; mpRightKnee = rK;
+            mpLeftAnkle = lA; mpRightAnkle = rA;
         }
         else
         {
-            mpLeftShoulder = mpRightShoulder_Raw; mpRightShoulder = mpLeftShoulder_Raw;
-            mpLeftElbow = mpRightElbow_Raw; mpRightElbow = mpLeftElbow_Raw;
-            mpLeftWrist = mpRightWrist_Raw; mpRightWrist = mpLeftWrist_Raw;
-
-            mpLeftHip = mpRightHip_Raw; mpRightHip = mpLeftHip_Raw;
-            mpLeftKnee = mpRightKnee_Raw; mpRightKnee = mpLeftKnee_Raw;
-            mpLeftAnkle = mpRightAnkle_Raw; mpRightAnkle = mpLeftAnkle_Raw;
+            worldLeftShoulder = lS; worldRightShoulder = rS;
+            worldLeftElbow = lE; worldRightElbow = rE;
+            worldLeftWrist = lW; worldRightWrist = rW;
+            worldLeftHip = lH; worldRightHip = rH;
+            worldLeftKnee = lK; worldRightKnee = rK;
+            worldLeftAnkle = lA; worldRightAnkle = rA;
         }
-
-        landmarksFound = true;
     }
 }
