@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Unity WebGL Player | AR</title>
+
+  <link rel="shortcut icon" href="TemplateData/favicon.ico">
+  <link rel="stylesheet" href="TemplateData/style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #unity-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #input_video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      z-index: 1;
+      background: #000;
+    }
+
+    #unity-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      background: transparent !important;
+      background-color: transparent !important;
+      z-index: 2;
+
+      mix-blend-mode: screen;
+    }
+
+    #unity-loading-bar {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+    }
+
+    #unity-warning {
+      position: absolute;
+      left: 50%;
+      top: 16px;
+      transform: translateX(-50%);
+      z-index: 10;
+    }
+
+    #unity-footer {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      z-index: 4;
+    }
+
+    #debug-panel {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      z-index: 20;
+      color: #00ff66;
+      font: 12px monospace;
+      background: rgba(0,0,0,0.55);
+      padding: 8px;
+      border-radius: 6px;
+      display: none;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="unity-container" class="unity-desktop">
+    <video id="input_video" autoplay playsinline muted></video>
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+
+    <div id="unity-loading-bar">
+      <div id="unity-logo"></div>
+      <div id="unity-progress-bar-empty">
+        <div id="unity-progress-bar-full"></div>
+      </div>
+    </div>
+
+    <div id="unity-warning"></div>
+
+    <div id="unity-footer">
+      <div id="unity-webgl-logo"></div>
+      <div id="unity-fullscreen-button"></div>
+      <div id="unity-build-title">AR</div>
+    </div>
+
+    <div id="debug-panel"></div>
+  </div>
+
+  <!-- Unity loader -->
+  <script>
+    const container = document.querySelector("#unity-container");
+    const canvas = document.querySelector("#unity-canvas");
+    const loadingBar = document.querySelector("#unity-loading-bar");
+    const progressBarFull = document.querySelector("#unity-progress-bar-full");
+    const fullscreenButton = document.querySelector("#unity-fullscreen-button");
+    const warningBanner = document.querySelector("#unity-warning");
+    const debugPanel = document.querySelector("#debug-panel");
+
+    const UNITY_WEBBRIDGE_OBJECT_NAME = "WebBridge";
+
+    window.myUnityInstance = null;
+    window.unityReady = false;
+
+    function unityShowBanner(msg, type) {
+      function updateBannerVisibility() {
+        warningBanner.style.display = warningBanner.children.length ? "block" : "none";
+      }
+
+      const div = document.createElement("div");
+      div.innerHTML = msg;
+      warningBanner.appendChild(div);
+
+      if (type === "error") {
+        div.style = "background: red; padding: 10px;";
+      } else {
+        if (type === "warning") div.style = "background: yellow; padding: 10px;";
+        setTimeout(function () {
+          if (div.parentNode) warningBanner.removeChild(div);
+          updateBannerVisibility();
+        }, 5000);
+      }
+
+      updateBannerVisibility();
+    }
+
+    const buildUrl = "Build";
+    const loaderUrl = buildUrl + "/V1.loader.js";
+
+    const config = {
+      dataUrl: buildUrl + "/V1.data.unityweb",
+      frameworkUrl: buildUrl + "/V1.framework.js.unityweb",
+      codeUrl: buildUrl + "/V1.wasm.unityweb",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "DefaultCompany",
+      productName: "AR",
+      productVersion: "0.1.0",
+      showBanner: unityShowBanner,
+      background: "transparent",
+      webglContextAttributes: {
+        preserveDrawingBuffer: true,
+        alpha: true
+      }
+    };
+
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      const meta = document.createElement("meta");
+      meta.name = "viewport";
+      meta.content = "width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes";
+      document.getElementsByTagName("head")[0].appendChild(meta);
+      container.className = "unity-mobile";
+      canvas.className = "unity-mobile";
+    }
+
+    loadingBar.style.display = "block";
+
+    const unityLoaderScript = document.createElement("script");
+    unityLoaderScript.src = loaderUrl;
+    unityLoaderScript.onload = () => {
+      createUnityInstance(canvas, config, (progress) => {
+        progressBarFull.style.width = (100 * progress) + "%";
+      }).then((unityInstance) => {
+        window.myUnityInstance = unityInstance;
+        window.unityReady = true;
+        loadingBar.style.display = "none";
+        console.log("[Unity] Loaded.");
+        fullscreenButton.onclick = () => unityInstance.SetFullscreen(1);
+      }).catch((message) => {
+        console.error("[Unity] Load error:", message);
+        alert(message);
+      });
+    };
+    document.body.appendChild(unityLoaderScript);
+  </script>
+
+  <!-- MediaPipe Pose -->
+  <script>
+    const videoElement = document.getElementById("input_video");
+
+    let frameCount = 0;
+    let lastLogTime = 0;
+
+    const pose = new Pose({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+    });
+
+    pose.setOptions({
+      modelComplexity: 1,
+      smoothLandmarks: true,
+      enableSegmentation: false,
+      smoothSegmentation: false,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+      selfieMode: true
+    });
+
+    pose.onResults(onResults);
+
+    function convertToCoverDisplayPoint(x, y) {
+      const cw = container.clientWidth || window.innerWidth;
+      const ch = container.clientHeight || window.innerHeight;
+
+      const vw = videoElement.videoWidth || 1280;
+      const vh = videoElement.videoHeight || 720;
+
+      const containerAspect = cw / ch;
+      const videoAspect = vw / vh;
+
+      let displayX = x;
+      let displayY = y;
+
+      if (videoAspect > containerAspect) {
+        const renderedW = ch * videoAspect;
+        const cropX = (renderedW - cw) * 0.5;
+        displayX = (x * renderedW - cropX) / cw;
+      } else {
+        const renderedH = cw / videoAspect;
+        const cropY = (renderedH - ch) * 0.5;
+        displayY = (y * renderedH - cropY) / ch;
+      }
+
+      return { x: displayX, y: displayY };
+    }
+
+    function onResults(results) {
+      if (!results.poseLandmarks || !results.poseWorldLandmarks) return;
+
+      const itemsArray = [];
+
+      for (let i = 0; i < 33; i++) {
+        const screen = results.poseLandmarks[i];
+        const world = results.poseWorldLandmarks[i];
+
+        const display = convertToCoverDisplayPoint(screen.x, screen.y);
+
+        const visibleX = 1.0 - display.x;
+
+        itemsArray.push({
+          x: display.x,
+          y: display.y,
+          z: screen.z,
+
+          wx: world.x,
+          wy: world.y,
+          wz: -world.z,
+
+          visibility: screen.visibility ?? 1.0
+        });
+      }
+
+      // if (itemsArray.length > 0) {
+      //     console.log("Kiểm tra trục Z:", itemsArray[0].z);
+      // }
+
+      const jsonString = JSON.stringify({ items: itemsArray });
+
+      if (window.unityReady && window.myUnityInstance) {
+        window.myUnityInstance.SendMessage(
+          UNITY_WEBBRIDGE_OBJECT_NAME,
+          "ReceiveLandmarks",
+          jsonString
+        );
+
+        frameCount++;
+
+        const now = performance.now();
+        if (now - lastLogTime > 2000) {
+          lastLogTime = now;
+          const hipL = itemsArray[23];
+          const hipR = itemsArray[24];
+          const hipX = ((hipL.x + hipR.x) * 0.5).toFixed(3);
+          const hipY = ((hipL.y + hipR.y) * 0.5).toFixed(3);
+
+          console.log(`[MediaPipe] Sent screen+world landmarks. Frames=${frameCount}, hip=(${hipX}, ${hipY})`);
+
+          if (debugPanel.style.display === "block") {
+            debugPanel.textContent =
+              `MediaPipe OK\nframes: ${frameCount}\nhip x/y: ${hipX}, ${hipY}\nvideo: ${videoElement.videoWidth}x${videoElement.videoHeight}`;
+          }
+        }
+      }
+    }
+
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await pose.send({ image: videoElement });
+      },
+      width: 1280,
+      height: 720
+    });
+
+    camera.start()
+      .then(() => console.log("[Camera] Started."))
+      .catch((err) => {
+        console.error("[Camera] Start error:", err);
+        unityShowBanner("Camera start error: " + err, "error");
+      });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key.toLowerCase() === "d") {
+        debugPanel.style.display = debugPanel.style.display === "block" ? "none" : "block";
+      }
+    });
+  </script>
+</body>
+</html>
