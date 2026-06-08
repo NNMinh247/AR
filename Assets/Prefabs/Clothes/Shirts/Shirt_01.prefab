@@ -1,0 +1,154 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &4462868085322742241
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      propertyPath: m_Name
+      value: Shirt_01
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 5866666021909216657, guid: de6fb5e072b01b44e9f4fa2b68c40252, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: -8862315597122749697, guid: de6fb5e072b01b44e9f4fa2b68c40252, type: 3}
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8174560306351258487}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8827555263225650880}
+  m_SourcePrefab: {fileID: 100100000, guid: de6fb5e072b01b44e9f4fa2b68c40252, type: 3}
+--- !u!1 &3543808651172758704 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+    type: 3}
+  m_PrefabInstance: {fileID: 4462868085322742241}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8174560306351258487
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3543808651172758704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64a97aa65570a4e44a5ef60690a972d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  annotationParentName: World Point List
+  worldAnnotationParentName: World Point List
+  mirrorLeftRight: 1
+  flipX: 1
+  flipZ: 0
+  smoothing: 0.3
+  showDebugLog: 1
+  boneNamePrefix: 
+  armatureRoot: {fileID: 8034650718745992906}
+  dumpAllBoneNames: 1
+  boneLeftArm: {fileID: 0}
+  boneRightArm: {fileID: 0}
+  boneLeftForeArm: {fileID: 0}
+  boneRightForeArm: {fileID: 0}
+  boneForwardAxis: {x: 0, y: 1, z: 0}
+--- !u!114 &8827555263225650880
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3543808651172758704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11073dffd18a6d447b472a01e7f071fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  annotationParentName: World Point List
+  worldAnnotationParentName: World Point List
+  mirrorLeftRight: 1
+  flipX: 1
+  flipZ: 0
+  smoothing: 0.3
+  showDebugLog: 1
+  boneNamePrefix: 
+  armatureRoot: {fileID: 8034650718745992906}
+  dumpAllBoneNames: 0
+  boneLeftUpLeg: {fileID: 0}
+  boneRightUpLeg: {fileID: 0}
+  boneLeftLeg: {fileID: 0}
+  boneRightLeg: {fileID: 0}
+  controlBodyPosition: 0
+  positionScale: 1
+  positionOffset: {x: 0, y: 0, z: 0}
+  legForwardAxis: {x: 0, y: 1, z: 0}
+  rotateHips: 1
+  invertBodyForward: 1
+  zThreshold: 0.02
+  invertRoll: 0
+  invertYaw: 0
+--- !u!4 &8034650718745992906 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -3283235579664799957, guid: de6fb5e072b01b44e9f4fa2b68c40252,
+    type: 3}
+  m_PrefabInstance: {fileID: 4462868085322742241}
+  m_PrefabAsset: {fileID: 0}
